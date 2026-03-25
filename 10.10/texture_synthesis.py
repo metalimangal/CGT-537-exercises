@@ -737,19 +737,19 @@ if __name__ == "__main__":
 
             # Efros & Leung synthesis
             print("1. Efros & Leung synthesis...")
-            result = efros_leung_synthesis(checker, (48, 48), neighborhood=5, progress_cb=print_progress)
+            result = efros_leung_synthesis(source, (48, 48), neighborhood=5, progress_cb=print_progress)
             save_image(result, "indiv_efros_leung.png")
             print("\n   Saved: indiv_efros_leung.png")
 
             # Image quilting
             print("2. Efros & Freeman image quilting...")
-            result = image_quilting(brick, (128, 128), block_size=24, overlap=6, progress_cb=print_progress)
+            result = image_quilting(source, (128, 128), block_size=24, overlap=6, progress_cb=print_progress)
             save_image(result, "indiv_quilting.png")
             print("\n   Saved: indiv_quilting.png")
 
             # Criminisi inpainting
             print("3. Criminisi inpainting...")
-            test_img = brick.copy()
+            test_img = source.copy()
             test_img = np.array(Image.fromarray((test_img * 255).astype(np.uint8))
                         .resize((96, 96), Image.LANCZOS), dtype=np.float64)/255.0
             mask = create_circle_mask(96, 96, radius=12)
@@ -760,7 +760,7 @@ if __name__ == "__main__":
 
             # Telea inpainting
             print("4. Telea inpainting...")
-            test_img2 = brick.copy()
+            test_img2 = source.copy()
             test_img2 = np.array(Image.fromarray((test_img2 * 255).astype(np.uint8))
                          .resize((96, 96), Image.LANCZOS), dtype=np.float64)/255.0
             test_img2[mask > 0.5] = 0
@@ -770,7 +770,7 @@ if __name__ == "__main__":
 
             # Multi-resolution synthesis
             print("5. Wei & Levoy multi-resolution synthesis...")
-            result = wei_levoy_synthesis(checker, (64, 64), neighborhood=5, levels=2, progress_cb=print_progress)
+            result = wei_levoy_synthesis(source, (64, 64), neighborhood=5, levels=2, progress_cb=print_progress)
             save_image(result, "indiv_multirez.png")
             print("\n   Saved: indiv_multirez.png")
 
