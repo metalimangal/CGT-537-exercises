@@ -731,82 +731,71 @@ if __name__ == "__main__":
             save_image(brick, "sample_brick.png")
 
             source = load_image(args.source)
+            synth_size = (96, 96)
 
-            # --- Individual Demos ---
-            print("=== Individual Demos ===\n")
+            # =============================================
+            # PART A: Texture Synthesis Comparison
+            # All algorithms synthesize from the same source
+            # to the same output size for fair comparison
+            # =============================================
+            print("=== Part A: Texture Synthesis Comparison ===\n")
 
-            # Efros & Leung synthesis
-            print("1. Efros & Leung synthesis...")
-            result = efros_leung_synthesis(source, (48, 48), neighborhood=5, progress_cb=print_progress)
-            save_image(result, "indiv_efros_leung.png")
-            print("\n   Saved: indiv_efros_leung.png")
+            # Step 1: Basic Efros & Leung (baseline)
+            print("1. Efros & Leung (baseline pixel-by-pixel)...")
+            result = efros_leung_synthesis(source, synth_size, neighborhood=5, progress_cb=print_progress)
+            save_image(result, "synth_1_efros_leung.png")
+            print("\n   Saved: synth_1_efros_leung.png")
 
-            # Image quilting
-            print("2. Efros & Freeman image quilting...")
-            result = image_quilting(source, (128, 128), block_size=24, overlap=6, progress_cb=print_progress)
-            save_image(result, "indiv_quilting.png")
-            print("\n   Saved: indiv_quilting.png")
+            # Step 2: Wei & Levoy (improvement: multi-resolution)
+            print("2. Wei & Levoy (+ multi-resolution)...")
+            result = wei_levoy_synthesis(source, synth_size, neighborhood=5, levels=3, progress_cb=print_progress)
+            save_image(result, "synth_2_wei_levoy.png")
+            print("\n   Saved: synth_2_wei_levoy.png")
 
-            # Criminisi inpainting
-            print("3. Criminisi inpainting...")
-            test_img = source.copy()
-            test_img = np.array(Image.fromarray((test_img * 255).astype(np.uint8))
-                        .resize((96, 96), Image.LANCZOS), dtype=np.float64)/255.0
-            mask = create_circle_mask(96, 96, radius=12)
-            test_img[mask > 0.5] = 0
-            result = criminisi_inpainting(test_img, mask, patch_size=9, progress_cb=print_progress)
-            save_image(result, "indiv_criminisi.png")
-            print("\n   Saved: indiv_criminisi.png")
+            # Step 3: Efros & Freeman (improvement: block-based + optimal seams)
+            print("3. Efros & Freeman (+ block quilting with seams)...")
+            result = image_quilting(source, synth_size, block_size=24, overlap=6, progress_cb=print_progress)
+            save_image(result, "synth_3_quilting.png")
+            print("\n   Saved: synth_3_quilting.png")
 
-            # Telea inpainting
-            print("4. Telea inpainting...")
-            test_img2 = source.copy()
-            test_img2 = np.array(Image.fromarray((test_img2 * 255).astype(np.uint8))
-                         .resize((96, 96), Image.LANCZOS), dtype=np.float64)/255.0
-            test_img2[mask > 0.5] = 0
-            result = telea_inpainting(test_img2, mask, radius=5, progress_cb=print_progress)
-            save_image(result, "indiv_telea.png")
-            print("\n   Saved: indiv_telea.png")
+            # =============================================
+            # PART B: Hole Filling / Inpainting Comparison
+            # All algorithms fill the same hole in the same
+            # image for fair comparison
+            # =============================================
+            print("\n=== Part B: Inpainting Comparison ===\n")
 
-            # Multi-resolution synthesis
-            print("5. Wei & Levoy multi-resolution synthesis...")
-            result = wei_levoy_synthesis(source, (64, 64), neighborhood=5, levels=2, progress_cb=print_progress)
-            save_image(result, "indiv_multirez.png")
-            print("\n   Saved: indiv_multirez.png")
+            # Prepare test image with hole
+            inpaint_size = 96
+            test_img = np.array(Image.fromarray((source * 255).astype(np.uint8))
+                        .resize((inpaint_size, inpaint_size), Image.LANCZOS), dtype=np.float64) / 255.0
+            mask = create_circle_mask(inpaint_size, inpaint_size, radius=15)
 
-            # --- Pipeline Demo ---
-            print("\n=== Pipeline Demo (cumulative) ===\n")
-            pipeline_img = source.copy()
+            # Save the damaged image for reference
+            damaged = test_img.copy()
+            damaged[mask > 0.5] = 0
+            save_image(damaged, "inpaint_0_damaged.png")
+            print("   Saved damaged image: inpaint_0_damaged.png")
 
-            # Step 1: Efros & Leung
-            print("Step 1: Efros & Leung synthesis...")
-            pipeline_img = efros_leung_synthesis(pipeline_img, (64, 64), neighborhood=5, progress_cb=print_progress)
-            save_image(pipeline_img, "pipeline_1_efros_leung.png")
+            # Step 4: Criminisi (priority-based exemplar inpainting)
+            print("4. Criminisi (priority-based patch filling)...")
+            img_c = test_img.copy()
+            img_c[mask > 0.5] = 0
+            result = criminisi_inpainting(img_c, mask.astype(np.float64), patch_size=9, progress_cb=print_progress)
+            save_image(result, "inpaint_1_criminisi.png")
+            print("\n   Saved: inpaint_1_criminisi.png")
 
-            # Step 2: Multi-resolution
-            print("Step 2: Multi-resolution synthesis...")
-            pipeline_img = wei_levoy_synthesis(pipeline_img, (64, 64), neighborhood=5, levels=2, progress_cb=print_progress)
-            save_image(pipeline_img, "pipeline_2_multirez.png")
-
-            # Step 3: Criminisi inpainting
-            print("Step 3: Criminisi inpainting...")
-            mask = create_circle_mask(64, 64, radius=12)
-            pipeline_img[mask > 0.5] = 0
-            pipeline_img = criminisi_inpainting(pipeline_img, mask.astype(np.float64), patch_size=5, progress_cb=print_progress)
-            save_image(pipeline_img, "pipeline_3_criminisi.png")
-
-            # Step 4: Telea inpainting
-            print("Step 4: Telea inpainting...")
-            pipeline_img[mask > 0.5] = 0
-            pipeline_img = telea_inpainting(pipeline_img, mask.astype(np.float64), radius=5, progress_cb=print_progress)
-            save_image(pipeline_img, "pipeline_4_telea.png")
-
-            # Step 5: Image quilting
-            print("Step 5: Image quilting...")
-            pipeline_img = image_quilting(pipeline_img, (128, 128), block_size=24, overlap=6, progress_cb=print_progress)
-            save_image(pipeline_img, "pipeline_5_quilting.png")
+            # Step 5: Telea (isophote / smooth continuation inpainting)
+            print("5. Telea (isophote smooth continuation)...")
+            img_t = test_img.copy()
+            img_t[mask > 0.5] = 0
+            result = telea_inpainting(img_t, mask.astype(np.float64), radius=5, progress_cb=print_progress)
+            save_image(result, "inpaint_2_telea.png")
+            print("\n   Saved: inpaint_2_telea.png")
 
             print("\n=== Demo Complete! ===")
+            print("Compare synth_1/2/3 to see progressive synthesis improvements.")
+            print("Compare inpaint_1/2 to see texture vs smooth inpainting.")
 
     
 
