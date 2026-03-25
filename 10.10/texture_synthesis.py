@@ -730,6 +730,8 @@ if __name__ == "__main__":
             brick = create_brick_texture(64)
             save_image(brick, "sample_brick.png")
 
+            source = load_image(args.source)
+
             # --- Individual Demos ---
             print("=== Individual Demos ===\n")
 
@@ -774,7 +776,7 @@ if __name__ == "__main__":
 
             # --- Pipeline Demo ---
             print("\n=== Pipeline Demo (cumulative) ===\n")
-            pipeline_img = checker.copy()
+            pipeline_img = source.copy()
 
             # Step 1: Efros & Leung
             print("Step 1: Efros & Leung synthesis...")
